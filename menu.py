@@ -1,97 +1,84 @@
-# Imports
 from PPlay.window import *
 from PPlay.sprite import *
-from PPlay.gameimage import *
-from PPlay.mouse import *
-from PPlay.keyboard import *
 
-# Definição de janela (900, 600)
-janela = Window(900, 600)
+import jogar
+import dificuldade
+import atalho
 
-# Definição da tela de fundo
-fundo = GameImage("imagens/fundoGalaxia.png")
 
-# Definição do input do mouse como variável
-mouse = Mouse()
+janela = Window(537, 457)
+janela.set_title("Space Invaders - Paulo Mota e Pedro Rangel")
 
-# Definição do input do teclado como variável
-teclado = Keyboard()
+mouse = janela.get_mouse()
 
-# Definição da Sprite dos botões
-botao_1 = Sprite("imagens/botao.png")
-botao_1.x = janela.width / 2 - botao_1.width / 2
-botao_1.y = 150
+menu = Sprite("png/menu.png", 1)
+menu.x = 0
+menu.y = 0
 
-botao_2 = Sprite("imagens/botao.png")
-botao_2.x = janela.width / 2 - botao_2.width / 2
-botao_2.y = 250
+# sprites dos botões
+btn_jogar = Sprite("png/jogar.png", 1)
+btn_difi = Sprite("png/dificuldade.png", 1)
+btn_ranking = Sprite("png/ranking.png", 1)
+btn_sair = Sprite("png/sair.png", 1)
 
-botao_3 = Sprite("imagens/botao.png")
-botao_3.x = janela.width / 2 - botao_3.width / 2
-botao_3.y = 350
+# variaveis que vão alterar a tela
+ini_jogar = False
+ini_difi = False
+ini_rank = False
+b_sair_do_jogo = False
 
-botao_4 = Sprite("imagens/botao.png")
-botao_4.x = janela.width / 2 - botao_4.width / 2
-botao_4.y = 450
+troca_timer = 0
 
-# Definição da variável referente ao estado do jogo (0 = Menu, 1 = Gameplay, 2 = Tela de dificuldade)
-estado = 0
+# nivel de dificuldade
+nivel = 2
 
-# Game Loop
-while True:
-    if estado != 1:
-        # Desenho da tela de fundo
-        fundo.draw()
+pontuacao = None
 
-        # Escrita do título
-        janela.draw_text("Space Invaders", janela.width / 2 - 175, 30, 50, (255, 255, 255), "Arial", True, True)
+while not b_sair_do_jogo:
 
-        # Desenho dos botões
-        botao_1.draw()
-        botao_2.draw()
-        botao_3.draw()
-        botao_4.draw()
+    janela.set_title("Space Invaders - Paulo Mota")
+    menu.draw()
 
-        # Seleção do botão "Sair"
-        if mouse.is_over_object(botao_4) and mouse.is_button_pressed(1):
-            janela.close()
+    # se o mouse "está sobre o botão", exibe o botão iluminado //
+    # se "botão é pressionado" ativa o inicializador de troca de tela
+    if mouse.is_over_area([95, 215], [440, 255]):
+        atalho.posicao(btn_jogar, 95, 215)
+        if mouse.is_button_pressed(1):
+            ini_jogar = True
 
-        if estado == 0:
-            # Escrita dos botões
-            janela.draw_text("Jogar", janela.width / 2 - 35, 155, 30, (255, 255, 255), "Arial")
-            janela.draw_text("Dificuldade", janela.width / 2 - 60, 255, 30, (255, 255, 255), "Arial")
-            janela.draw_text("Ranking", janela.width / 2 - 45, 355, 30, (255, 255, 255), "Arial")
-            janela.draw_text("Sair", janela.width / 2 - 25, 455, 30, (255, 255, 255), "Arial")
+    # Verifica se pressionou o botaode de defilculdade
+    if mouse.is_over_area([95, 265], [440, 305]):
+        atalho.posicao(btn_difi, 95, 265)
+        if mouse.is_button_pressed(1):
+            ini_difi = True
 
-            # Seleção do botão "Sair"
-            if mouse.is_over_object(botao_4) and mouse.is_button_pressed(1):
-                janela.close()
+    # Verifica se pressionou o botaode de ranking
+    if mouse.is_over_area([95, 315], [440, 355]):
+        atalho.posicao(btn_ranking, 95, 315)
+        if mouse.is_button_pressed(1):
+            ini_rank = True
 
-            # Seleção do botão "Jogar"
-            elif mouse.is_over_object(botao_1) and mouse.is_button_pressed(1):
-                estado = 1
+    # Verifica se pressionou o botaode sair
+    if mouse.is_over_area([95, 365], [440, 405]):
+        atalho.posicao(btn_sair, 95, 365)
+        if mouse.is_button_pressed(1):
+            b_sair_do_jogo = True
 
-            # Seleção do botão "Dificuldade"
-            elif mouse.is_over_object(botao_2) and mouse.is_button_pressed(1):
-                estado = 2
+    # ativa a outra tela
+    if ini_jogar or ini_difi or ini_rank:
+        troca_timer += janela.delta_time()
 
-        if estado == 2:
-            # Escrita dos botões de dificuldade
-            janela.draw_text("Fácil", janela.width / 2 - 30, 155, 30, (255, 255, 255), "Arial")
-            janela.draw_text("Médio", janela.width / 2 - 35, 255, 30, (255, 255, 255), "Arial")
-            janela.draw_text("Difícil", janela.width / 2 - 35, 355, 30, (255, 255, 255), "Arial")
-            janela.draw_text("Sair", janela.width / 2 - 25, 455, 30, (255, 255, 255), "Arial")
+        if troca_timer >= 1 and ini_jogar:
+            jogar.jogar()
+            ini_jogar = False
+            troca_timer = 0
 
-            # Ao pressionar Esc, volta ao Menu
-            if teclado.key_pressed("esc"):
-                estado = 0
+        if troca_timer >= 1 and ini_difi:
+            nivel = dificuldade.tela()
+            ini_difi = False
+            troca_timer = 0
 
-    if estado == 1:
-        janela.set_background_color([0, 0, 0])
-
-        # Ao pressionar Esc, volta ao Menu
-        if teclado.key_pressed("esc"):
-            estado = 0
-
-    # Update da janela
     janela.update()
+
+
+
