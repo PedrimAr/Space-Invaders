@@ -41,7 +41,7 @@ def jogar():
     matriz_y = int(random.uniform(3, max_size))
 
     # Definição da matriz de inimigos
-    enemies = [[0 for x in range(matriz_x + 1)] for x in range(matriz_y + 1)]
+    enemies = [[0 for x in range(matriz_y)] for x in range(matriz_x)]
     enemies = spawn_enemy(matriz_x, matriz_y, enemies)
     direcao_inimigos = 1
 
@@ -91,16 +91,6 @@ def jogar():
             tiros_player.append(tiro_player)
             ultimo_tiro_player = janela.time_elapsed()
 
-        # Controle de disparo dos enemies
-        if janela.time_elapsed() - ultimo_tiro_enemies > (cooldown_enemies + int(random.uniform(-0.7, 0.3))) * 1000:
-            tiro_enemies = Sprite("png/tiro_inimigo.png")
-            a = int(random.uniform(0, matriz_x))
-            b = int(random.uniform(0, matriz_y))
-            tiro_enemies.set_position(enemies[a][b].x + nave.width / 2 - tiro_enemies.width / 2, enemies[a][b].y - tiro_enemies.height)
-            tiros_enemies.append(tiro_enemies)
-            ultimo_tiro_enemies = janela.time_elapsed()
-
-
         # Movimentação dos projéteis do player
         for tiro in tiros_player:
             tiro.move_y(-300 * delta)
@@ -133,13 +123,16 @@ def jogar():
         '''
 
         for tiro in tiros_player:
-            if tiro.y <= enemies[matriz_x - 1][matriz_y - 1].y + enemies[matriz_x - 1][matriz_y - 1].height:
-                for linha in range(matriz_x):
-                    for coluna in range(matriz_y):
-                        inimigo = enemies[linha][coluna]
-                        if tiro.collided(inimigo):
-                            enemies[linha][coluna] = 0
+            if tiro.y <= 140 + len(enemies) * 26:
+            # if tiro.y <= enemies[len(enemies) - 1][len(enemies) - 1].y + enemies[len(enemies) - 1][len(enemies) - 1].height:
+                for linha in enemies:
+                    for coluna in linha:
+                        if tiro and tiro.collided(coluna):
+                            # try:
+                            linha.remove(coluna)
                             tiro = 0
+                            # except:
+                            #    pass
 
         for tiro in tiros_enemies:
             if tiro.collided(nave):
@@ -147,20 +140,31 @@ def jogar():
                 vida -= 1
 
         # Desenho dos inimigos
-        for linha in range(matriz_x):
-            for coluna in range(matriz_y):
-                if enemies[linha][coluna] != 0:
-                    enemies[linha][coluna].draw()
+        for linha in enemies:
+            for coluna in linha:
+                coluna.draw()
 
         # Desenho dos tiros do player
         for tiro in tiros_player:
-            if tiro != 0:
+            if tiro:
                 tiro.draw()
+
+        # Controle de disparo dos enemies
+        a = int(random.uniform(0, matriz_x))
+        b = int(random.uniform(0, matriz_y))
+        inimigos_vivos = [coluna for linha in enemies for coluna in linha if coluna != 0]
+
+        if inimigos_vivos and janela.time_elapsed() - ultimo_tiro_enemies > (
+                cooldown_enemies + int(random.uniform(-0.7, 0.3))) * 1000:
+            inimigo_aleatorio = random.choice(inimigos_vivos)
+            tiro_enemies = Sprite("png/tiro_inimigo.png")
+            tiro_enemies.set_position(inimigo_aleatorio.x + inimigo_aleatorio.width / 2 - tiro_enemies.width / 2, inimigo_aleatorio.y + tiro_enemies.height)
+            tiros_enemies.append(tiro_enemies)
+            ultimo_tiro_enemies = janela.time_elapsed()
 
         # Desenho dos tiros dos enemies
         for tiro in tiros_enemies:
-            if tiro != 0:
-                tiro.draw()
+            tiro.draw()
 
         m_ficar = atalho.sair()
         janela.update()
