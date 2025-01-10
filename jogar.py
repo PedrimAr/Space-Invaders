@@ -6,10 +6,10 @@ from enemies import spawn_enemy
 
 import atalho
 
-game_speed = 400
 
+def jogar(nivel):
+    game_speed = 300 + nivel
 
-def jogar():
     # entra num game loop vazio, que sai novamente para o menu ao pressionar ESC
     janela = Window(537, 457)
     janela.set_title("ATENÇÃO, hora de atirar! ESC para voltar ao menu inicial!")
@@ -24,6 +24,8 @@ def jogar():
     vel_nave = game_speed
 
     vida = 5
+    fase = 1
+    pontos = 0
 
     tiros_player = []
     cooldown_player = 0.5
@@ -69,9 +71,6 @@ def jogar():
             frames = 0
             tempo = 0
 
-        janela.draw_text("FPS: " + str(fps), janela.width - 100, 20, 20, (255, 255, 255))
-        janela.draw_text("VIDAS: " + str(vida), janela.width - 120, 50, 20, (255, 255, 255))
-
         # Movimentação horizontal da nave
         if teclado.key_pressed("a") and nave.x >= 0:
             nave.move_x(-1 * vel_nave * janela.delta_time())
@@ -103,46 +102,55 @@ def jogar():
             if tiro.y > janela.height:
                 tiros_enemies.remove(tiro)
 
-
-
-        '''
-        # Movimentação dos inimigos
-        move_y = False
-        for linha in range(matriz_x):
-            for coluna in range(matriz_y):
-                if enemies[linha][coluna].x + enemies[linha][coluna].width >= janela.width or enemies[linha][coluna].x <= 0:
-                    direcao_inimigos *= -1
-                    move_y = True
-                    break
-
-        for linha in range(matriz_x):
-            for coluna in range(matriz_y):
-                enemies[linha][coluna].move_x(direcao_inimigos * game_speed * delta)
-                if move_y:
-                    enemies[linha][coluna].move_y(10)
-        '''
-
         for tiro in tiros_player:
-            if tiro.y <= 140 + len(enemies) * 26:
-            # if tiro.y <= enemies[len(enemies) - 1][len(enemies) - 1].y + enemies[len(enemies) - 1][len(enemies) - 1].height:
-                for linha in enemies:
-                    for coluna in linha:
-                        if tiro and tiro.collided(coluna):
-                            # try:
-                            linha.remove(coluna)
-                            tiro = 0
-                            # except:
-                            #    pass
+            for linha in enemies:
+                for coluna in linha:
+                    if coluna != 0 and tiro.collided(coluna):
+                        linha.remove(coluna)  # Remove o inimigo da matriz
+                        if tiro in tiros_player:
+                            tiros_player.remove(tiro)  # Remove o tiro correspondente
 
         for tiro in tiros_enemies:
             if tiro.collided(nave):
                 tiros_enemies.remove(tiro)
                 vida -= 1
 
-        # Desenho dos inimigos
+        limite_direito = 0
+        limite_esquerdo = 0
+
+        # Movimentação dos inimigos (horizontal)
+        if not all(len(linha) == 0 for linha in enemies):
+            limite_esquerdo = min(coluna.x for linha in enemies for coluna in linha if coluna != 0)
+            limite_direito = max(coluna.x + coluna.width for linha in enemies for coluna in linha if coluna != 0)
+
+        atingiu_borda = False
+        # Verifica se os inimigos chegaram nas bordas da janela
+        if limite_esquerdo <= 0 or limite_direito >= janela.width:
+            direcao_inimigos *= -1  # Inverte a direção
+            atingiu_borda = True
+
+        # Move os inimigos horizontalmente
         for linha in enemies:
             for coluna in linha:
-                coluna.draw()
+                if coluna != 0:
+                    if atingiu_borda:
+                        coluna.move_y(10)
+                    coluna.move_x(direcao_inimigos * 100 * delta)  # Velocidade de 100 px/s
+
+        # Desenho dos inimigos
+        if all(len(linha) == 0 for linha in enemies):
+            fase += 1
+            pontos += int(100/tempo)
+            if fase < 4:
+                matriz_x += 1  # Aumenta o número de linhas
+                matriz_y += 1  # Aumenta o número de colunas
+            enemies = [[0 for _ in range(matriz_y)] for _ in range(matriz_x)]
+            enemies = spawn_enemy(matriz_x, matriz_y, enemies)
+            game_speed += 50  # Aumenta a velocidade para deixar mais difícil
+        else:
+            for linha in enemies:
+                for coluna in linha:
+                    coluna.draw()
 
         # Desenho dos tiros do player
         for tiro in tiros_player:
@@ -166,5 +174,35 @@ def jogar():
         for tiro in tiros_enemies:
             tiro.draw()
 
+        # Verifica se morreu
+        if vida <= 0:
+            nome = str(input("Digite seu nome para salvar sua pontuação: "))
+            salvar_ranking(nome, pontos)
+            while True:  # Loop da tela de Game Over
+                janela.set_background_color((0, 0, 0))  # Fundo preto
+                janela.draw_text("GAME OVER", janela.width / 2 - 100, janela.height / 2 - 50, size=40,
+                                 color=(255, 0, 0))
+                janela.draw_text("Pressione ESC para sair ou R para reiniciar", janela.width / 2 - 150,
+                                 janela.height / 2 + 20, size=20, color=(255, 255, 255))
+                janela.update()
+
+                # Controle de reinício ou saída
+                if teclado.key_pressed("ESC"):
+                    return  # Sai do loop e volta ao menu
+                elif teclado.key_pressed("R"):
+                    jogar(nivel)  # Reinicia o jogo
+                    return
+
+        janela.draw_text(f"FPS: {fps}", janela.width - 100, 20, 20, (255, 255, 255))
+        janela.draw_text(f"VIDAS: {vida}", janela.width - 120, 50, 20, (255, 255, 255))
+        janela.draw_text(f"FASE: {fase}", janela.width - 120, 80, 20, (255, 255, 255))
+        janela.draw_text(f"PONTOS: {pontos}", janela.width - 120, 110, 20, (255, 255, 255))
+
         m_ficar = atalho.sair()
         janela.update()
+
+
+def salvar_ranking(nome, pontos, arquivo="ranking.txt"):
+    with open(arquivo, "a") as file:  # Abre o arquivo no modo de append
+        file.write(f"Nome: {nome}, Pontos: {pontos}\n")
+
